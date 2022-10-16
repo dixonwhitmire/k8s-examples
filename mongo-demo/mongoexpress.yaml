@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongo-express-deploy
+  labels:
+    tier: ui
+    app: mongo-express
+spec:
+  replicas: 1
+  minReadySeconds: 0
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+  revisionHistoryLimit: 10
+  progressDeadlineSeconds: 600
+  selector:
+    # selects the pods for the deployment
+    matchLabels:
+      app: mongo-demo
+      tier: ui
+  template:
+    metadata:
+      labels:
+        tier: ui
+        app: mongo-demo
+    spec:
+      containers:
+      - name: mongoexpress
+        image: mongo-express:1.0.0-alpha
+        ports:
+        - containerPort: 8081
+        env:
+        - name: ME_CONFIG_MONGODB_SERVER
+          value: mongo-service
+        - name: ME_CONFIG_MONGODB_PORT
+          value: "27017"
+        - name: ME_CONFIG_MONGODB_AUTH_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: mongo-secret
+              key: mongo_root_username
+        - name: ME_CONFIG_MONGODB_AUTH_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mongo-secret
+              key: mongo_root_password
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongo-express-service
+  labels:
+    app: mongo-demo
+spec:
+  type: NodePort
+  selector:
+        tier: ui
+        app: mongo-demo
+  ports:
+    - port: 8081
+      nodePort: 30036
+

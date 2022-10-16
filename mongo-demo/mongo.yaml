@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongo-deploy
+  labels:
+    tier: data
+    app: mongo-demo
+spec:
+  replicas: 1
+  minReadySeconds: 0
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+  revisionHistoryLimit: 10
+  progressDeadlineSeconds: 600
+  selector:
+    # selects the pods for the deployment
+    matchLabels:
+      app: mongo-demo
+      tier: data
+  template:
+    metadata:
+      labels:
+        tier: data
+        app: mongo-demo
+    spec:
+      containers:
+      - name: mongodb
+        image: mongo:6.0.2-focal
+        ports:
+        - containerPort: 27017
+        env:
+        - name: MONGO_INITDB_ROOT_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: mongo-secret
+              key: mongo_root_username
+        - name: MONGO_INITDB_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mongo-secret
+              key: mongo_root_password
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongo-service
+  labels:
+    app: mongo-demo
+spec:
+  type: ClusterIP
+  selector:
+        tier: data
+        app: mongo-demo
+  ports:
+    - port: 27017
+      targetPort: 27017
+
